@@ -1,6 +1,9 @@
 package com.example.mconkmap
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.graphics.Color
 import android.graphics.Typeface
@@ -89,7 +92,19 @@ class MainActivity : Activity() {
 
         webView = WebView(this).apply {
             setBackgroundColor(Color.WHITE)
-            webViewClient = WebViewClient()
+            webViewClient = object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(
+                    view: WebView,
+                    request: android.webkit.WebResourceRequest
+                ): Boolean {
+                    return handleSpecialUrl(view, request.url.toString())
+                }
+
+                @Suppress("DEPRECATION")
+                override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+                    return handleSpecialUrl(view, url)
+                }
+            }
             webChromeClient = WebChromeClient()
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
@@ -114,6 +129,46 @@ class MainActivity : Activity() {
         }
         root.addView(footer)
         setContentView(root)
+    }
+
+    private fun handleSpecialUrl(view: WebView, url: String): Boolean {
+        // 일반 웹 주소(https/http)는 WebView에서 그대로 엽니다.
+        if (url.startsWith("https://") || url.startsWith("http://")) {
+            return false
+        }
+
+        // 네이버 지도 등의 intent:// 링크는 Android 앱 실행으로 전달합니다.
+        if (url.startsWith("intent://")) {
+            var fallbackUrl: String? = null
+            try {
+                val intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
+                fallbackUrl = intent.getStringExtra("browser_fallback_url")
+                intent.addCategory(Intent.CATEGORY_BROWSABLE)
+                intent.component = null
+                startActivity(intent)
+                return true
+            } catch (_: ActivityNotFoundException) {
+                // 지도 앱이 설치되어 있지 않으면 아래의 웹 주소로 이동합니다.
+            } catch (_: Exception) {
+                // 링크 형식이 잘못되었어도 웹 대체 주소가 있으면 사용합니다.
+            }
+
+            if (!fallbackUrl.isNullOrBlank() &&
+                (fallbackUrl.startsWith("https://") || fallbackUrl.startsWith("http://"))
+            ) {
+                view.loadUrl(fallbackUrl)
+                return true
+            }
+            return true
+        }
+
+        // nmap://, kakaomap:// 등 기타 앱 전용 링크도 앱 실행을 시도합니다.
+        return try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            true
+        } catch (_: Exception) {
+            true
+        }
     }
 
     private fun loadService(index: Int) {
