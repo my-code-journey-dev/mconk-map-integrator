@@ -1,0 +1,33 @@
+
+plugins {
+    id 'com.android.application' version '8.6.1'
+    id 'org.jetbrains.kotlin.android' version '2.0.21'
+}
+
+android {
+    namespace 'com.example.mconkmap'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.example.mconkmap'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '0.1-prototype'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
