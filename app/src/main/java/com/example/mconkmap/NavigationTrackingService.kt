@@ -70,7 +70,11 @@ class NavigationTrackingService : Service(), LocationListener, SensorEventListen
                 obdSpeedKmh = obd?.speedKmh,
                 obdLastUpdateNanos = obd?.timestampNanos ?: 0L,
                 obdConnected = obd?.connected == true,
-                yawRateRadPerSecond = headingTracker.currentYawRateRadPerSecond()
+                yawRateRadPerSecond = headingTracker.currentYawRateRadPerSecond(),
+                manualSpeedKmh = if (prefs.getBoolean("manual_speed_enabled", false))
+                    prefs.getFloat("manual_speed_kmh", Float.NaN).toDouble().takeIf { it.isFinite() && it in 0.0..180.0 }
+                else null,
+                manualSpeedOffsetKmh = prefs.getFloat("manual_speed_offset_kmh", 0f).toDouble()
             ))
 
             if (state.mode == TrackingMode.DEAD_RECKONING) {

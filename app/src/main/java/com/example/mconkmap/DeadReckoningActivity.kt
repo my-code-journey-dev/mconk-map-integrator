@@ -15,6 +15,7 @@ import android.view.ViewGroup
 import androidx.core.content.FileProvider
 import java.io.File
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.text.InputType
 import android.widget.LinearLayout
@@ -29,6 +30,9 @@ class DeadReckoningActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var obdLabel: TextView
     private lateinit var outageSecondsInput: EditText
+    private lateinit var manualSpeedInput: EditText
+    private lateinit var manualSpeedOffsetInput: EditText
+    private lateinit var manualSpeedEnabled: CheckBox
     private val handler = Handler(Looper.getMainLooper())
     private val prefs by lazy { getSharedPreferences("navigation_tracking", MODE_PRIVATE) }
     private val dark = Color.rgb(17, 24, 39)
@@ -65,6 +69,60 @@ class DeadReckoningActivity : Activity() {
         root.addView(select, buttonParams())
         obdLabel = text("선택된 OBD2: 없음", 14f, muted)
         root.addView(obdLabel)
+
+        root.addView(text("수동 차속 설정 (OBD 없이 사용)", 18f, white, true))
+        manualSpeedEnabled = CheckBox(this).apply {
+            text = "수동 차속 사용"
+            textSize = 15f
+            setTextColor(white)
+            isChecked = prefs.getBoolean("manual_speed_enabled", false)
+        }
+        root.addView(manualSpeedEnabled)
+        root.addView(text("차량 속도 입력 (km/h)", 14f, white))
+        manualSpeedInput = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            setSingleLine(true)
+            setTextColor(white)
+            setHintTextColor(muted)
+            hint = "예: 80"
+            setText(if (prefs.contains("manual_speed_kmh")) prefs.getFloat("manual_speed_kmh", 0f).toString() else "")
+        }
+        root.addView(manualSpeedInput, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 56))
+        root.addView(text("추가 보정값 (+ km/h)", 14f, white))
+        manualSpeedOffsetInput = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            setSingleLine(true)
+            setTextColor(white)
+            setHintTextColor(muted)
+            hint = "예: 5  (입력 속도에 5 km/h 추가)"
+            setText(prefs.getFloat("manual_speed_offset_kmh", 0f).toString())
+        }
+        root.addView(manualSpeedOffsetInput, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 56))
+        val saveManualSpeed = button("수동 차속 설정 저장")
+        saveManualSpeed.setOnClickListener {
+            val speed = manualSpeedInput.text.toString().trim().toDoubleOrNull()
+            val offset = manualSpeedOffsetInput.text.toString().trim().toDoubleOrNull()
+            if (manualSpeedEnabled.isChecked && (speed == null || !speed.isFinite() || speed !in 0.0..180.0)) {
+                showMessage("차량 속도를 0~180 km/h 범위로 입력하세요.")
+                return@setOnClickListener
+            }
+            if (offset == null || !offset.isFinite() || offset !in 0.0..50.0) {
+                showMessage("추가 보정값은 0~50 km/h 범위로 입력하세요.")
+                return@setOnClickListener
+            }
+            val editor = prefs.edit()
+                .putBoolean("manual_speed_enabled", manualSpeedEnabled.isChecked)
+                .putFloat("manual_speed_offset_kmh", offset.toFloat())
+            if (speed != null && speed.isFinite() && speed in 0.0..180.0) {
+                editor.putFloat("manual_speed_kmh", speed.toFloat())
+            }
+            editor.apply()
+            showMessage(if (manualSpeedEnabled.isChecked)
+                "저장 완료: 입력 속도 %.1f + 보정값 %.1f = 최대 %.1f km/h".format(speed, offset, (speed!! + offset).coerceAtMost(180.0))
+                else "수동 차속 사용이 꺼졌습니다. GPS 속도 유지 기능을 사용합니다.")
+        }
+        root.addView(saveManualSpeed, buttonParams())
+        root.addView(text("수동 차속은 GPS가 끊긴 구간에서 사용합니다. OBD가 연결되어 있으면 OBD 속도가 우선됩니다. 설정값은 저장 후 추적 서비스에 적용됩니다.", 13f, muted))
 
         val mockSettings = button("2. 개발자 옵션에서 모의 위치 앱 선택")
         mockSettings.setOnClickListener {

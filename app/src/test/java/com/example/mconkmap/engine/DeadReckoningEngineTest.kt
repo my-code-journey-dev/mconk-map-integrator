@@ -26,6 +26,28 @@ class DeadReckoningEngineTest {
         assertTrue(state.longitude > 127.0)
     }
 
+    @Test fun manualSpeedAndPositiveOffsetDriveDeadReckoningWithoutObd() {
+        val engine = DeadReckoningEngine()
+        val t = 10_000_000_000L
+        engine.update(EngineInput(t, GpsFix(37.5, 127.0, 36.0, 90.0, 5f, t)))
+        val state = engine.update(EngineInput(
+            nowElapsedRealtimeNanos = t + 1_000_000_000L,
+            manualSpeedKmh = 60.0,
+            manualSpeedOffsetKmh = 5.0
+        ))
+        assertEquals(65.0, state.speedKmh, 0.01)
+        assertEquals(65.0 / 3.6 * 0.5, state.deadReckoningDistanceMeters, 0.1)
+    }
+
+    @Test fun recentGpsSpeedIsUsedBrieflyWithoutObdOrManualSpeed() {
+        val engine = DeadReckoningEngine()
+        val t = 10_000_000_000L
+        engine.update(EngineInput(t, GpsFix(37.5, 127.0, 36.0, 90.0, 5f, t)))
+        val state = engine.update(EngineInput(t + 1_000_000_000L))
+        assertEquals(36.0, state.speedKmh, 0.01)
+        assertEquals(5.0, state.deadReckoningDistanceMeters, 0.1)
+    }
+
     @Test fun inaccurateGpsIsIgnored() {
         val engine = DeadReckoningEngine()
         val t = 10_000_000_000L

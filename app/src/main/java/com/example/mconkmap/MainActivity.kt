@@ -130,6 +130,11 @@ class MainActivity : Activity() {
         val deadReckoningButton = Button(this).apply {
             text = "OBD2 터널 추측항법 설정  ›"
             styleLargeButton(this)
+            textSize = 15f
+            maxLines = 2
+            minHeight = 80
+            minimumHeight = 80
+            setPadding(10, 8, 10, 8)
             setOnClickListener {
                 startActivity(Intent(this@MainActivity, DeadReckoningActivity::class.java))
             }
@@ -141,12 +146,17 @@ class MainActivity : Activity() {
             setPadding(12, 6, 12, 6)
         })
         root.addView(deadReckoningButton, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, 68
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
         ).apply { setMargins(8, 0, 8, 10) })
 
         val hudButton = Button(this).apply {
             text = "HUD 페어링 기기 확인  ›"
             styleLargeButton(this)
+            textSize = 15f
+            maxLines = 2
+            minHeight = 80
+            minimumHeight = 80
+            setPadding(10, 8, 10, 8)
             setOnClickListener { showPairedHudDevices() }
         }
         root.addView(TextView(this).apply {
@@ -156,7 +166,7 @@ class MainActivity : Activity() {
             setPadding(12, 6, 12, 6)
         })
         root.addView(hudButton, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, 68
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
         ).apply { setMargins(8, 0, 8, 10) })
 
         webView = WebView(this).apply {
