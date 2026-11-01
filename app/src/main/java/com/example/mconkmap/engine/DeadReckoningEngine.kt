@@ -18,7 +18,9 @@ data class EngineInput(
     val obdSpeedKmh: Double? = null,
     val obdLastUpdateNanos: Long = 0L,
     val obdConnected: Boolean = false,
-    val yawRateRadPerSecond: Double = 0.0
+    val yawRateRadPerSecond: Double = 0.0,
+    val manualSpeedKmh: Double? = null,
+    val manualSpeedOffsetKmh: Double = 0.0
 )
 
 
@@ -170,8 +172,11 @@ class DeadReckoningEngine(
 
         // Prefer live/recent OBD speed. Without OBD, briefly retain the last valid GPS speed.
         // GPS fallback is deliberately time-limited because speed can change inside a tunnel.
+        val manualSpeed = input.manualSpeedKmh
         val usableSpeed = when {
             obdAge in 0L..5_000_000_000L -> lastObdSpeedKmh * speedRatio
+            manualSpeed != null && manualSpeed.isFinite() && manualSpeed in 0.0..180.0 ->
+                manualSpeed + input.manualSpeedOffsetKmh.coerceIn(0.0, 50.0)
             gpsSpeedAge in 0L..5_000_000_000L -> lastGpsSpeedKmh
             else -> 0.0
         }
