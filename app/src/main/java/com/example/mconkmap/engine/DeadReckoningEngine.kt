@@ -2,8 +2,6 @@ package com.example.mconkmap.engine
 
 import kotlin.math.*
 
-enum class TrackingMode { WAITING_FOR_GPS, GPS, DEAD_RECKONING, RECOVERING }
-
 data class GpsFix(
     val latitude: Double,
     val longitude: Double,
@@ -22,18 +20,6 @@ data class EngineInput(
     val yawRateRadPerSecond: Double = 0.0
 )
 
-data class NavigationState(
-    val latitude: Double,
-    val longitude: Double,
-    val speedKmh: Double,
-    val bearingDegrees: Double,
-    val accuracyMeters: Float,
-    val mode: TrackingMode,
-    val calibratedSpeedRatio: Double,
-    val deadReckoningDistanceMeters: Double,
-    val deadReckoningElapsedSeconds: Double,
-    val obdConnected: Boolean
-)
 
 /**
  * Platform-independent vehicle dead-reckoning engine.
