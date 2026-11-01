@@ -157,7 +157,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             contentDescription = "뺄 속도 보정값 km/h"
         }
         root.addView(makeText("1. 보정할 속도 입력 (km/h)", 15f, fg))
-        correctionRow.addView(correctionInput, LinearLayout.LayoutParams(0, 52, 1f))
+        root.addView(correctionInput, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 52))
         val applyCorrection = Button(this).apply {
             text = "속도 보정값 저장"
             isAllCaps = false
@@ -174,9 +174,8 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
                 }
             }
         }
-        correctionRow.addView(applyCorrection, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT, 52
-        ))
+        root.addView(makeText("보정값을 저장하려면 아래 버튼을 누르세요.", 13f, muted))
+        root.addView(applyCorrection, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 52))
         val resetCorrection = Button(this).apply {
             text = "보정값 0으로 초기화"
             isAllCaps = false
@@ -189,10 +188,8 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
                 updateDisplay()
             }
         }
-        correctionRow.addView(resetCorrection, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT, 52
-        ))
-        root.addView(correctionRow)
+        root.addView(makeText("저장된 보정값을 0으로 되돌리려면 아래 버튼을 누르세요.", 13f, muted))
+        root.addView(resetCorrection, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 52))
 
         val virtualRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -209,7 +206,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             contentDescription = "실내 테스트 원본 속도 km/h"
         }
         root.addView(makeText("2. 실내에서 시험할 원본 속도 입력 (km/h)", 15f, fg))
-        virtualRow.addView(virtualSpeedInput, LinearLayout.LayoutParams(0, 52, 1f))
+        root.addView(virtualSpeedInput, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 52))
         val applyVirtualSpeed = Button(this).apply {
             text = "입력한 실내 속도 적용"
             isAllCaps = false
@@ -224,7 +221,8 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
                 }
             }
         }
-        virtualRow.addView(applyVirtualSpeed, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, 52))
+        root.addView(makeText("입력한 원본 속도로 실내 계산을 시작하려면 아래 버튼을 누르세요.", 13f, muted))
+        root.addView(applyVirtualSpeed, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 52))
         val clearVirtualSpeed = Button(this).apply {
             text = "실내 속도 입력 해제"
             isAllCaps = false
@@ -234,8 +232,8 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
                 updateDisplay()
             }
         }
-        virtualRow.addView(clearVirtualSpeed, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, 52))
-        root.addView(virtualRow)
+        root.addView(makeText("실내 속도 시험을 끝내고 실제 GPS 속도로 돌아가려면 아래 버튼을 누르세요.", 13f, muted))
+        root.addView(clearVirtualSpeed, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 52))
         val virtualHelp = makeText(
             "실내 계산 시험: 예를 들어 60 입력 + 보정값 4 적용 → 원본 60 / 보정 −4 / 결과 56 km/h. 이 값은 우선 이 앱에서 계산을 확인하는 용도이며, 외부 지도 앱/HUD 반영 여부는 별도 시험해야 합니다.",
             13f, muted
@@ -261,6 +259,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
                 if (mockSpeedTestActive) stopMockSpeedTest() else startMockSpeedTest()
             }
         }
+        root.addView(makeText("모의 GPS를 외부 지도 앱에 시험 송출하려면 아래 버튼을 누르세요.", 13f, muted))
         root.addView(mockTestButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 54))
 
         listOf(status, gpsText, estimateText, confidenceText, headingText).forEach {
@@ -286,6 +285,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             }
         }
         root.addView(makeText("4. 실제 GPS·방향 추정 기능 (실외 시험용)", 16f, fg))
+        root.addView(makeText("휴대폰 방향 센서를 GPS 진행 방향에 맞추려면 아래 버튼을 누르세요.", 13f, muted))
         root.addView(calibrateButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 54))
 
         val start = Button(this).apply {
@@ -300,12 +300,14 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             isAllCaps = false
             setOnClickListener { stopTracking(); status.text = "상태: 중지됨" }
         }
+        root.addView(makeText("GPS 위치 수신을 종료하려면 아래 버튼을 누르세요.", 13f, muted))
         root.addView(stop, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 48))
         val back = Button(this).apply {
             text = "이전 화면으로 돌아가기"
             isAllCaps = false
             setOnClickListener { finish() }
         }
+        root.addView(makeText("이전 메뉴로 이동하려면 아래 버튼을 누르세요.", 13f, muted))
         root.addView(back, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 48))
         setContentView(ScrollView(this).apply { addView(root) })
     }
@@ -378,7 +380,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
         mockSpeedTestActive = false
         uiHandler.removeCallbacks(mockSpeedRunnable)
         try { locationManager.removeTestProvider(LocationManager.GPS_PROVIDER) } catch (_: Exception) {}
-        if (::mockTestButton.isInitialized) mockTestButton.text = "시스템 속도 보정 실험 시작"
+        if (::mockTestButton.isInitialized) mockTestButton.text = "모의 GPS 송출 시작"
         if (::status.isInitialized) status.text = "상태: 모의 GPS 중지 · 실제 GPS가 복구됐는지 확인하세요."
     }
 
