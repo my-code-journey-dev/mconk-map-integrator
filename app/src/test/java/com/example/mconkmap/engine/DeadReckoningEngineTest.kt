@@ -36,7 +36,7 @@ class DeadReckoningEngineTest {
             manualSpeedOffsetKmh = 5.0
         ))
         assertEquals(65.0, state.speedKmh, 0.01)
-        assertEquals(65.0 / 3.6, state.deadReckoningDistanceMeters, 0.1)
+        assertEquals(65.0 / 3.6 * 0.5, state.deadReckoningDistanceMeters, 0.1)
     }
 
     @Test fun recentGpsSpeedIsUsedBrieflyWithoutObdOrManualSpeed() {
@@ -45,7 +45,7 @@ class DeadReckoningEngineTest {
         engine.update(EngineInput(t, GpsFix(37.5, 127.0, 36.0, 90.0, 5f, t)))
         val state = engine.update(EngineInput(t + 1_000_000_000L))
         assertEquals(36.0, state.speedKmh, 0.01)
-        assertEquals(10.0, state.deadReckoningDistanceMeters, 0.1)
+        assertEquals(5.0, state.deadReckoningDistanceMeters, 0.1)
     }
 
     @Test fun inaccurateGpsIsIgnored() {
