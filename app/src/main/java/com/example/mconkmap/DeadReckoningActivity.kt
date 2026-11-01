@@ -104,7 +104,6 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         speedOffsetKmh = getSharedPreferences("dr_settings", MODE_PRIVATE).getInt("speed_offset_kmh", 0).coerceIn(-20, 20)
@@ -296,19 +295,19 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
 
         val start = Button(this).apply {
             styleLargeButton(this)
-            text = "실제 GPS 위치 수신 시작"
+            text = "백그라운드 GPS·터널 추측항법 시작"
             isAllCaps = false
             setOnClickListener { startTracking() }
         }
-        root.addView(makeText("실제 GPS 수신을 시작하려면 아래 버튼을 누르세요.", 13f, muted))
+        root.addView(makeText("시작 후 화면을 꺼도 위치 추적을 유지합니다. 알림창에 실행 상태가 표시됩니다.", 13f, muted))
         root.addView(start, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 54))
         val stop = Button(this).apply {
             styleLargeButton(this)
-            text = "GPS 위치 수신 중지"
+            text = "백그라운드 추적 중지"
             isAllCaps = false
             setOnClickListener { stopTracking(); status.text = "상태: 중지됨" }
         }
-        root.addView(makeText("GPS 위치 수신을 종료하려면 아래 버튼을 누르세요.", 13f, muted))
+        root.addView(makeText("백그라운드 위치 추적과 터널 추측항법을 종료합니다.", 13f, muted))
         root.addView(stop, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 48))
         val back = Button(this).apply {
             styleLargeButton(this)
@@ -350,6 +349,8 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             return
         }
         try {
+            val serviceIntent = Intent(this, TunnelTrackingService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(serviceIntent) else startService(serviceIntent)
             val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
             var requested = false
             providers.forEach { provider ->
@@ -413,6 +414,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
         try { locationManager.removeUpdates(this) } catch (_: Exception) {}
         sensorManager.unregisterListener(this)
         isTracking = false
+        stopService(Intent(this, TunnelTrackingService::class.java))
     }
 
     override fun onLocationChanged(location: Location) {
@@ -511,7 +513,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
     override fun onDestroy() {
         uiHandler.removeCallbacks(refreshRunnable)
         stopMockSpeedTest()
-        stopTracking()
+        try { locationManager.removeUpdates(this) } catch (_: Exception) {}
         super.onDestroy()
     }
 
