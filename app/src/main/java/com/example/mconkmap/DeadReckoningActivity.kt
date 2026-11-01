@@ -43,6 +43,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
     private var lastFixElapsedMs = 0L
     private var sensorHeading = Double.NaN
     private var calibratedHeadingOffset = 0.0
+    private var headingCalibrated = false
     private var hasGpsFix = false
     private var isTracking = false
     private val uiHandler = Handler(Looper.getMainLooper())
@@ -107,6 +108,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             setOnClickListener {
                 if (!sensorHeading.isNaN()) {
                     calibratedHeadingOffset = normalizeAngle(lastBearing - sensorHeading)
+                    headingCalibrated = true
                     status.text = "상태: 방향 보정값 저장됨 (GPS 진행방향 기준)"
                     updateDisplay()
                 } else {
@@ -204,8 +206,8 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             val orientation = FloatArray(3)
             SensorManager.getOrientation(rotationMatrix, orientation)
             sensorHeading = normalizeAngle(Math.toDegrees(orientation[0].toDouble()))
-            headingText.text = "휴대폰 방향 센서: " + sensorHeading.toInt() + "° (보정 후 " +
-                normalizeAngle(sensorHeading + calibratedHeadingOffset).toInt() + "°)"
+            headingText.text = "휴대폰 방향 센서: " + sensorHeading.toInt() + "°" +
+                if (headingCalibrated) " (보정 후 " + normalizeAngle(sensorHeading + calibratedHeadingOffset).toInt() + "°)" else " (아직 미보정)"
         }
     }
 
@@ -219,7 +221,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             return
         }
         val ageSeconds = ((SystemClock.elapsedRealtime() - lastFixElapsedMs).coerceAtLeast(0L)) / 1000.0
-        val bearing = if (!sensorHeading.isNaN()) normalizeAngle(sensorHeading + calibratedHeadingOffset) else lastBearing
+        val bearing = if (headingCalibrated && !sensorHeading.isNaN()) normalizeAngle(sensorHeading + calibratedHeadingOffset) else lastBearing
         val speed = lastSpeedMps.coerceIn(0.0, 55.0)
         val distance = speed * ageSeconds.coerceAtMost(MAX_EXTRAPOLATION_SECONDS)
         val estimated = destinationPoint(lastLat, lastLon, distance, bearing)
