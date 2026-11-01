@@ -3,6 +3,10 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+dependencies {
+    testImplementation 'junit:junit:4.13.2'
+}
+
 android {
     namespace 'com.example.mconkmap'
     compileSdk 35
@@ -17,7 +21,6 @@ android {
 
     testOptions { unitTests.returnDefaultValues = true }
 
-    dependencies { testImplementation 'junit:junit:4.13.2' }
 
     buildTypes {
         release {
