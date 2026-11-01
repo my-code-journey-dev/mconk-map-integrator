@@ -80,6 +80,7 @@ class NavigationTrackingService : Service(), LocationListener, SensorEventListen
                 if (probing && now - probeStartedNanos >= GPS_PROBE_TIMEOUT_NANOS) {
                     probing = false
                     if (mockController.start()) mockActive = true
+                    lastProbeNanos = now
                     lastStateText = "GPS 복귀 신호 없음 · 추측항법 계속"
                 } else if (!mockActive && !probing) {
                     mockActive = mockController.start()
