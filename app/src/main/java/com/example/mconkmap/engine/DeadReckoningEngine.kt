@@ -38,6 +38,7 @@ class DeadReckoningEngine(
     private var speedKmh = 0.0
     private var lastUpdateNanos = 0L
     private var lastGoodGpsNanos = 0L
+    private var lastRatioGpsNanos = 0L
     private var lastObdSpeedKmh = 0.0
     private var lastObdNanos = 0L
     private var speedRatio = 1.0
@@ -128,12 +129,13 @@ class DeadReckoningEngine(
             mode = TrackingMode.GPS
         }
 
-        if (input.obdConnected && input.obdSpeedKmh != null &&
+        if (gps.elapsedRealtimeNanos != lastRatioGpsNanos && input.obdConnected && input.obdSpeedKmh != null &&
             input.obdSpeedKmh >= 10.0 && gps.speedKmh >= 5.0 &&
             gps.accuracyMeters <= gpsMaxAccuracyMeters) {
             val measuredRatio = (gps.speedKmh / input.obdSpeedKmh).coerceIn(0.7, 1.3)
             speedRatio = (speedRatio * (1.0 - ratioAlpha) + measuredRatio * ratioAlpha)
                 .coerceIn(0.7, 1.3)
+            lastRatioGpsNanos = gps.elapsedRealtimeNanos
         }
         lastGoodGpsNanos = gps.elapsedRealtimeNanos
     }
