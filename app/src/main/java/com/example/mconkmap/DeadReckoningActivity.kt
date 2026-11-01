@@ -8,6 +8,8 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
 import android.os.SystemClock
+import android.os.Handler
+import android.os.Looper
 import android.view.Gravity
 import android.widget.Button
 import android.widget.LinearLayout
@@ -43,6 +45,13 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
     private var calibratedHeadingOffset = 0.0
     private var hasGpsFix = false
     private var isTracking = false
+    private val uiHandler = Handler(Looper.getMainLooper())
+    private val refreshRunnable = object : Runnable {
+        override fun run() {
+            updateDisplay()
+            uiHandler.postDelayed(this, 1000L)
+        }
+    }
     private val bg = Color.rgb(17, 24, 39)
     private val panel = Color.rgb(31, 41, 55)
     private val fg = Color.rgb(243, 244, 246)
@@ -55,6 +64,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         buildUi()
         updateDisplay()
+        uiHandler.post(refreshRunnable)
     }
 
     private fun buildUi() {
@@ -255,6 +265,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
     }
 
     override fun onDestroy() {
+        uiHandler.removeCallbacks(refreshRunnable)
         stopTracking()
         super.onDestroy()
     }
