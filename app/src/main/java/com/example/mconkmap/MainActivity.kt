@@ -47,11 +47,15 @@ class MainActivity : Activity() {
     private fun styleLargeButton(button: Button) {
         button.isAllCaps = false
         button.textSize = 17f
+        button.maxLines = 2
+        button.gravity = Gravity.CENTER
+        button.setLineSpacing(0f, 1.0f)
+        button.includeFontPadding = true
         button.setTextColor(Color.WHITE)
         button.typeface = Typeface.DEFAULT_BOLD
-        button.minHeight = 68
-        button.minimumHeight = 68
-        button.setPadding(18, 12, 18, 12)
+        button.minHeight = 72
+        button.minimumHeight = 72
+        button.setPadding(16, 14, 16, 14)
         button.background = android.graphics.drawable.GradientDrawable().apply {
             setColor(Color.rgb(37, 99, 235))
             cornerRadius = 20f
@@ -118,7 +122,7 @@ class MainActivity : Activity() {
             }
             tabs.addView(cardTitle)
             tabs.addView(cardDesc)
-            tabs.addView(button, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 68).apply {
+            tabs.addView(button, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
                 setMargins(4, 2, 4, 10)
             })
         }
