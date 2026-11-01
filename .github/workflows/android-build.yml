@@ -21,8 +21,13 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      # GitHub-hosted Ubuntu runners already provide Android SDK environment variables.
+      # Avoid android-actions/setup-android's obsolete "tools" package installation.
+      - name: Verify Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          test -d "$ANDROID_HOME/platforms/android-35"
+          test -d "$ANDROID_HOME/build-tools/35.0.0"
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
