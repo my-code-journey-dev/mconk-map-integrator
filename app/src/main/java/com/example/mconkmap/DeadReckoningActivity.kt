@@ -157,7 +157,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             contentDescription = "뺄 속도 보정값 km/h"
         }
         root.addView(makeText("1. 보정할 속도 입력 (km/h)", 15f, fg))
-        root.addView(correctionInput, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 52))
+        root.addView(correctionInput, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
         val applyCorrection = Button(this).apply {
             styleLargeButton(this)
             text = "속도 보정값 저장"
@@ -176,7 +176,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             }
         }
         root.addView(makeText("보정값을 저장하려면 아래 버튼을 누르세요.", 13f, muted))
-        root.addView(applyCorrection, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 52))
+        root.addView(applyCorrection, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
         val resetCorrection = Button(this).apply {
             styleLargeButton(this)
             text = "보정값 0으로 초기화"
@@ -191,7 +191,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             }
         }
         root.addView(makeText("저장된 보정값을 0으로 되돌리려면 아래 버튼을 누르세요.", 13f, muted))
-        root.addView(resetCorrection, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 52))
+        root.addView(resetCorrection, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
 
         val virtualRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -208,7 +208,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             contentDescription = "실내 테스트 원본 속도 km/h"
         }
         root.addView(makeText("2. 실내에서 시험할 원본 속도 입력 (km/h)", 15f, fg))
-        root.addView(virtualSpeedInput, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 52))
+        root.addView(virtualSpeedInput, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
         val applyVirtualSpeed = Button(this).apply {
             styleLargeButton(this)
             text = "입력한 실내 속도 적용"
@@ -225,7 +225,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             }
         }
         root.addView(makeText("입력한 원본 속도로 실내 계산을 시작하려면 아래 버튼을 누르세요.", 13f, muted))
-        root.addView(applyVirtualSpeed, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 52))
+        root.addView(applyVirtualSpeed, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
         val clearVirtualSpeed = Button(this).apply {
             styleLargeButton(this)
             text = "실내 속도 입력 해제"
@@ -237,7 +237,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             }
         }
         root.addView(makeText("실내 속도 시험을 끝내고 실제 GPS 속도로 돌아가려면 아래 버튼을 누르세요.", 13f, muted))
-        root.addView(clearVirtualSpeed, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 52))
+        root.addView(clearVirtualSpeed, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
         val virtualHelp = makeText(
             "실내 계산 시험: 예를 들어 60 입력 + 보정값 4 적용 → 원본 60 / 보정 −4 / 결과 56 km/h. 이 값은 우선 이 앱에서 계산을 확인하는 용도이며, 외부 지도 앱/HUD 반영 여부는 별도 시험해야 합니다.",
             13f, muted
@@ -265,7 +265,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             }
         }
         root.addView(makeText("모의 GPS를 외부 지도 앱에 시험 송출하려면 아래 버튼을 누르세요.", 13f, muted))
-        root.addView(mockTestButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 54))
+        root.addView(mockTestButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
 
         listOf(status, gpsText, estimateText, confidenceText, headingText).forEach {
             it.setPadding(12, 12, 12, 12)
@@ -292,7 +292,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
         }
         root.addView(makeText("4. 실제 GPS·방향 추정 기능 (실외 시험용)", 16f, fg))
         root.addView(makeText("휴대폰 방향 센서를 GPS 진행 방향에 맞추려면 아래 버튼을 누르세요.", 13f, muted))
-        root.addView(calibrateButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 54))
+        root.addView(calibrateButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
 
         val start = Button(this).apply {
             styleLargeButton(this)
@@ -301,7 +301,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             setOnClickListener { startTracking() }
         }
         root.addView(makeText("시작 후 화면을 꺼도 위치 추적을 유지합니다. 알림창에 실행 상태가 표시됩니다.", 13f, muted))
-        root.addView(start, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 54))
+        root.addView(start, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
         val stop = Button(this).apply {
             styleLargeButton(this)
             text = "백그라운드 추적 중지"
@@ -309,7 +309,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             setOnClickListener { stopTracking(); status.text = "상태: 중지됨" }
         }
         root.addView(makeText("백그라운드 위치 추적과 터널 추측항법을 종료합니다.", 13f, muted))
-        root.addView(stop, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 48))
+        root.addView(stop, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
         val back = Button(this).apply {
             styleLargeButton(this)
             text = "이전 화면으로 돌아가기"
@@ -317,7 +317,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             setOnClickListener { finish() }
         }
         root.addView(makeText("이전 메뉴로 이동하려면 아래 버튼을 누르세요.", 13f, muted))
-        root.addView(back, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 48))
+        root.addView(back, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
         setContentView(ScrollView(this).apply { addView(root) })
     }
 
@@ -325,11 +325,15 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
     private fun styleLargeButton(button: Button) {
         button.isAllCaps = false
         button.textSize = 17f
+        button.maxLines = 2
+        button.gravity = Gravity.CENTER
+        button.setLineSpacing(0f, 1.0f)
+        button.includeFontPadding = true
         button.setTextColor(Color.WHITE)
         button.typeface = Typeface.DEFAULT_BOLD
-        button.minHeight = 68
-        button.minimumHeight = 68
-        button.setPadding(18, 12, 18, 12)
+        button.minHeight = 72
+        button.minimumHeight = 72
+        button.setPadding(16, 14, 16, 14)
         button.background = android.graphics.drawable.GradientDrawable().apply {
             setColor(Color.rgb(37, 99, 235))
             cornerRadius = 20f
