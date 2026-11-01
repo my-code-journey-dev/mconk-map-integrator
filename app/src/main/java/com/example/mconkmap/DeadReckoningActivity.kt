@@ -11,7 +11,9 @@ import android.os.SystemClock
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
+import android.text.InputType
 import android.widget.Button
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -100,27 +102,54 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
         ).apply { setMargins(0, 5, 0, 5) })
 
-        val correctionButtons = LinearLayout(this).apply {
+        val correctionRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
+            gravity = Gravity.CENTER_VERTICAL
         }
-        fun correctionButton(label: String, delta: Int, reset: Boolean = false): Button {
-            return Button(this).apply {
-                text = label
-                isAllCaps = false
-                setOnClickListener {
-                    speedOffsetKmh = if (reset) 0 else (speedOffsetKmh + delta).coerceIn(-20, 20)
+        val correctionInput = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            setSingleLine(true)
+            textSize = 18f
+            hint = "예: 4"
+            setText(kotlin.math.abs(speedOffsetKmh).toString())
+            contentDescription = "뺄 속도 보정값 km/h"
+        }
+        correctionRow.addView(correctionInput, LinearLayout.LayoutParams(0, 52, 1f))
+        val applyCorrection = Button(this).apply {
+            text = "적용"
+            isAllCaps = false
+            setOnClickListener {
+                val amount = correctionInput.text.toString().toIntOrNull()
+                if (amount == null || amount !in 0..20) {
+                    status.text = "상태: 0~20 사이의 보정값을 입력해 주세요."
+                } else {
+                    speedOffsetKmh = -amount
                     getSharedPreferences("dr_settings", MODE_PRIVATE).edit()
                         .putInt("speed_offset_kmh", speedOffsetKmh).apply()
+                    status.text = "상태: 속도 보정값 적용됨 (−" + amount + " km/h)"
                     updateDisplay()
                 }
             }
         }
-        correctionButtons.addView(correctionButton("−1", -1), LinearLayout.LayoutParams(0, 48, 1f))
-        correctionButtons.addView(correctionButton("−4", -4), LinearLayout.LayoutParams(0, 48, 1f))
-        correctionButtons.addView(correctionButton("+1", 1), LinearLayout.LayoutParams(0, 48, 1f))
-        correctionButtons.addView(correctionButton("초기화", 0, true), LinearLayout.LayoutParams(0, 48, 1f))
-        root.addView(correctionButtons)
+        correctionRow.addView(applyCorrection, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, 52
+        ))
+        val resetCorrection = Button(this).apply {
+            text = "초기화"
+            isAllCaps = false
+            setOnClickListener {
+                speedOffsetKmh = 0
+                correctionInput.setText("0")
+                getSharedPreferences("dr_settings", MODE_PRIVATE).edit()
+                    .putInt("speed_offset_kmh", 0).apply()
+                status.text = "상태: 속도 보정값 초기화"
+                updateDisplay()
+            }
+        }
+        correctionRow.addView(resetCorrection, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, 52
+        ))
+        root.addView(correctionRow)
 
         status = makeText("상태: 시작 전", 17f, fg)
         gpsText = makeText("GPS: 대기 중", 16f, fg)
@@ -261,7 +290,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
         val estimated = destinationPoint(lastLat, lastLon, distance, bearing)
         val rawSpeedKmh = rawSpeedMps * 3.6
         val correctedSpeedKmh = (rawSpeedKmh + speedOffsetKmh).coerceIn(0.0, 198.0)
-        speedCorrectionText.text = "속도 보정: " + (if (speedOffsetKmh > 0) "+" else "") + speedOffsetKmh +
+        speedCorrectionText.text = "뺄 값: " + kotlin.math.abs(speedOffsetKmh) +
             " km/h   ·   보정 속도: " + correctedSpeedKmh.toInt() + " km/h"
         gpsText.text = "마지막 GPS: %.6f, %.6f\n수신 후 경과: %.1f초 · GPS 속도: %.1f km/h · 보정 표시: %.1f km/h · 진행 방향: %.0f°".format(
             lastLat, lastLon, ageSeconds, rawSpeedKmh, correctedSpeedKmh, bearing
