@@ -144,7 +144,7 @@ class MainActivity : Activity() {
                 "<h2>실험 메뉴</h2><p>1. 먼저 ‘속도 보정 / GPS 실험 열기’를 누르세요.</p>" +
                 "<p>2. 보정값을 입력하고 적용하세요.</p><p>3. 지도 앱은 위의 버튼을 눌렀을 때만 엽니다.</p>" +
                 "<p><b>주의:</b> 모의 GPS 실험은 정차 상태에서만 진행하세요.</p></body></html>",
-            "text/html", "UTF-8", null
+            "text/html", "UTF-8"
         )
         root.addView(webView, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f
