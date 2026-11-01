@@ -150,6 +150,8 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             inputType = InputType.TYPE_CLASS_NUMBER
             setSingleLine(true)
             textSize = 18f
+            setTextColor(fg)
+            setHintTextColor(muted)
             hint = "여기에 숫자 입력 (예: 4)"
             setText(kotlin.math.abs(speedOffsetKmh).toString())
             contentDescription = "뺄 속도 보정값 km/h"
@@ -200,6 +202,8 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
             setSingleLine(true)
             textSize = 18f
+            setTextColor(fg)
+            setHintTextColor(muted)
             hint = "여기에 속도 입력 (예: 60 km/h)"
             setText("60")
             contentDescription = "실내 테스트 원본 속도 km/h"
@@ -359,7 +363,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             mockLon = if (hasGpsFix) lastLon else 126.9707
             mockLastTickMs = SystemClock.elapsedRealtime()
             mockSpeedTestActive = true
-            mockTestButton.text = "시스템 속도 보정 실험 중지"
+            mockTestButton.text = "모의 GPS 송출 중지"
             status.text = "상태: 모의 GPS 준비됨 · 정차 상태에서만 시험"
             uiHandler.post(mockSpeedRunnable)
         } catch (e: Exception) {
