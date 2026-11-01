@@ -7,6 +7,7 @@ import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
+import android.os.Build
 import android.os.SystemClock
 import android.os.Handler
 import android.os.Looper
@@ -50,6 +51,42 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
     private var headingCalibrated = false
     private var hasGpsFix = false
     private var isTracking = false
+    private var mockSpeedTestActive = false
+    private var mockLat = Double.NaN
+    private var mockLon = Double.NaN
+    private var mockLastTickMs = 0L
+    private lateinit var mockTestButton: Button
+    private val mockSpeedRunnable = object : Runnable {
+        override fun run() {
+            if (!mockSpeedTestActive) return
+            try {
+                val now = SystemClock.elapsedRealtime()
+                val dt = ((now - mockLastTickMs).coerceAtLeast(0L) / 1000.0).coerceAtMost(2.0)
+                mockLastTickMs = now
+                val speedMps = ((lastSpeedMps * 3.6 + speedOffsetKmh).coerceAtLeast(0.0) / 3.6).coerceAtMost(55.0)
+                val moved = destinationPoint(mockLat, mockLon, speedMps * dt, lastBearing)
+                mockLat = moved.first
+                mockLon = moved.second
+                val mock = Location(LocationManager.GPS_PROVIDER).apply {
+                    latitude = mockLat
+                    longitude = mockLon
+                    accuracy = 5f
+                    speed = speedMps.toFloat()
+                    bearing = lastBearing.toFloat()
+                    time = System.currentTimeMillis()
+                    elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos()
+                }
+                locationManager.setTestProviderLocation(LocationManager.GPS_PROVIDER, mock)
+                status.text = "상태: 시스템 모의 GPS 송출 중 · 보정 속도 %.1f km/h".format(speedMps * 3.6)
+                gpsText.text = "실험용 모의 GPS\n좌표: %.6f, %.6f\n속도: %.1f km/h · 방향: %.0f°".format(mockLat, mockLon, speedMps * 3.6, lastBearing)
+            } catch (e: Exception) {
+                status.text = "상태: 모의 GPS 실패 (" + e.javaClass.simpleName + ") · 개발자 옵션 설정을 확인하세요."
+                stopMockSpeedTest()
+                return
+            }
+            uiHandler.postDelayed(this, 1000L)
+        }
+    }
     private val uiHandler = Handler(Looper.getMainLooper())
     private val refreshRunnable = object : Runnable {
         override fun run() {
@@ -151,11 +188,26 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
         ))
         root.addView(correctionRow)
 
+        val mockNote = makeText(
+            "실험 기능: 선택한 모의 위치 앱으로 시스템 GPS를 덮어씁니다. 지도 위치가 이동 경로를 따라가지 못할 수 있고 앱이 모의 위치를 차단할 수 있습니다. 반드시 정차 상태에서 켜고, 테스트 후 중지하세요.",
+            13f, muted
+        ).apply { setPadding(0, 8, 0, 8) }
+        root.addView(mockNote)
+
         status = makeText("상태: 시작 전", 17f, fg)
         gpsText = makeText("GPS: 대기 중", 16f, fg)
         estimateText = makeText("추정 위치: 대기 중", 20f, fg)
         confidenceText = makeText("신뢰도: 아직 GPS를 수신하지 못했습니다.", 15f, muted)
         headingText = makeText("휴대폰 방향 센서: 대기 중", 15f, muted)
+        mockTestButton = Button(this).apply {
+            text = "시스템 속도 보정 실험 시작"
+            isAllCaps = false
+            setOnClickListener {
+                if (mockSpeedTestActive) stopMockSpeedTest() else startMockSpeedTest()
+            }
+        }
+        root.addView(mockTestButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 54))
+
         listOf(status, gpsText, estimateText, confidenceText, headingText).forEach {
             it.setPadding(12, 12, 12, 12)
             it.setBackgroundColor(panel)
@@ -234,6 +286,44 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
         }
     }
 
+
+    private fun startMockSpeedTest() {
+        if (!hasGpsFix || lastLat.isNaN() || lastLon.isNaN()) {
+            status.text = "상태: 먼저 '추측항법 시작'을 눌러 실제 GPS 위치를 받아 주세요."
+            return
+        }
+        try {
+            locationManager.addTestProvider(
+                LocationManager.GPS_PROVIDER,
+                false, false, false, false,
+                true, true, true,
+                android.location.Criteria.POWER_MEDIUM,
+                android.location.Criteria.ACCURACY_FINE
+            )
+            locationManager.setTestProviderEnabled(LocationManager.GPS_PROVIDER, true)
+            mockLat = lastLat
+            mockLon = lastLon
+            mockLastTickMs = SystemClock.elapsedRealtime()
+            mockSpeedTestActive = true
+            mockTestButton.text = "시스템 속도 보정 실험 중지"
+            status.text = "상태: 모의 GPS 준비됨 · 정차 상태에서만 시험"
+            uiHandler.post(mockSpeedRunnable)
+        } catch (e: Exception) {
+            mockSpeedTestActive = false
+            mockTestButton.text = "시스템 속도 보정 실험 시작"
+            status.text = "상태: 모의 GPS 시작 실패 (" + e.javaClass.simpleName + "). 개발자 옵션에서 이 앱을 모의 위치 앱으로 선택했는지 확인하세요."
+            try { locationManager.removeTestProvider(LocationManager.GPS_PROVIDER) } catch (_: Exception) {}
+        }
+    }
+
+    private fun stopMockSpeedTest() {
+        mockSpeedTestActive = false
+        uiHandler.removeCallbacks(mockSpeedRunnable)
+        try { locationManager.removeTestProvider(LocationManager.GPS_PROVIDER) } catch (_: Exception) {}
+        if (::mockTestButton.isInitialized) mockTestButton.text = "시스템 속도 보정 실험 시작"
+        if (::status.isInitialized) status.text = "상태: 모의 GPS 중지 · 실제 GPS가 복구됐는지 확인하세요."
+    }
+
     private fun stopTracking() {
         try { locationManager.removeUpdates(this) } catch (_: Exception) {}
         sensorManager.unregisterListener(this)
@@ -241,6 +331,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
     }
 
     override fun onLocationChanged(location: Location) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && location.isMock) return
         if (location.hasAccuracy() && location.accuracy > 80f) {
             status.text = "상태: GPS 정확도가 낮습니다 (" + location.accuracy.toInt() + "m)"
             updateDisplay()
@@ -335,6 +426,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
 
     override fun onDestroy() {
         uiHandler.removeCallbacks(refreshRunnable)
+        stopMockSpeedTest()
         stopTracking()
         super.onDestroy()
     }
