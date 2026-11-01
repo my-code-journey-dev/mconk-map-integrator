@@ -80,7 +80,7 @@ class MainActivity : Activity() {
             setBackgroundColor(dark)
         }
         val title = TextView(this).apply {
-            text = "MCon K 속도 실험"
+            text = "차량 위치 보정 실험"
             textSize = 21f
             setTextColor(Color.WHITE)
             typeface = Typeface.DEFAULT_BOLD
@@ -128,14 +128,14 @@ class MainActivity : Activity() {
         }
         root.addView(tabs)
         val deadReckoningButton = Button(this).apply {
-            text = "속도 보정 설정 열기  ›"
+            text = "OBD2 터널 추측항법 설정  ›"
             styleLargeButton(this)
             setOnClickListener {
                 startActivity(Intent(this@MainActivity, DeadReckoningActivity::class.java))
             }
         }
         root.addView(TextView(this).apply {
-            text = "속도 보정값 입력과 실내 계산, GPS 실험을 진행하는 메뉴입니다."
+            text = "OBD2 연결, GPS 추측항법, 모의 위치 및 CSV 테스트를 설정합니다."
             textSize = 13f
             setTextColor(Color.DKGRAY)
             setPadding(12, 6, 12, 6)
@@ -186,8 +186,8 @@ class MainActivity : Activity() {
         }
         webView.loadData(
             "<html><body style='font-family:sans-serif;background:#f3f4f6;color:#111827;padding:24px'>" +
-                "<h2>실험 메뉴</h2><p>1. 먼저 ‘속도 보정 / GPS 실험 열기’를 누르세요.</p>" +
-                "<p>2. 보정값을 입력하고 적용하세요.</p><p>3. 지도 앱은 위의 버튼을 눌렀을 때만 엽니다.</p>" +
+                "<h2>실험 메뉴</h2><p>1. 먼저 ‘OBD2 터널 추측항법 설정’을 누르세요.</p>" +
+                "<p>2. ELM327을 선택하고 모의 위치 앱을 설정하세요.</p><p>3. 백그라운드 추적을 시작한 뒤 지도 앱을 실행하세요.</p>" +
                 "<p><b>주의:</b> 모의 GPS 실험은 정차 상태에서만 진행하세요.</p></body></html>",
             "text/html", "UTF-8"
         )
