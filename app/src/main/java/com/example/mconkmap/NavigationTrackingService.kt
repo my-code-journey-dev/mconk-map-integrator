@@ -230,7 +230,7 @@ class NavigationTrackingService : Service(), LocationListener, SensorEventListen
             }
             Sensor.TYPE_GYROSCOPE -> {
                 for (i in 0..2) gyro[i] = event.values[i]
-                val stopped = (latestObd?.speedKmh ?: 0.0) < 1.5
+                val stopped = latestObd?.connected == true && (latestObd?.speedKmh ?: 999.0) < 1.5
                 headingTracker.onGyroscope(event.values[0], event.values[1], event.values[2], stopped)
             }
         }
