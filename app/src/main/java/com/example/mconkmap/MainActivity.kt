@@ -43,6 +43,22 @@ class MainActivity : Activity() {
         buildUi()
     }
 
+
+    private fun styleLargeButton(button: Button) {
+        button.isAllCaps = false
+        button.textSize = 17f
+        button.setTextColor(Color.WHITE)
+        button.typeface = Typeface.DEFAULT_BOLD
+        button.minHeight = 68
+        button.minimumHeight = 68
+        button.setPadding(18, 12, 18, 12)
+        button.background = android.graphics.drawable.GradientDrawable().apply {
+            setColor(Color.rgb(37, 99, 235))
+            cornerRadius = 20f
+        }
+        button.elevation = 4f
+    }
+
     private fun buildUi() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -76,7 +92,7 @@ class MainActivity : Activity() {
         root.addView(header)
 
         val tabs = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
+            orientation = LinearLayout.VERTICAL
             setPadding(8, 8, 8, 8)
             setBackgroundColor(Color.WHITE)
         }
@@ -84,35 +100,60 @@ class MainActivity : Activity() {
             val button = Button(this).apply {
                 text = service.label
                 isAllCaps = false
-                textSize = 14f
+                styleLargeButton(this)
                 setOnClickListener { loadService(index) }
             }
-            tabs.addView(button, LinearLayout.LayoutParams(0, 52, 1f).apply {
-                setMargins(4, 0, 4, 0)
+            val cardTitle = TextView(this@MainActivity).apply {
+                text = service.label + " 지도 열기"
+                textSize = 16f
+                setTextColor(dark)
+                typeface = Typeface.DEFAULT_BOLD
+                setPadding(10, 10, 10, 2)
+            }
+            val cardDesc = TextView(this@MainActivity).apply {
+                text = "누르면 " + service.label + " 화면을 엽니다."
+                textSize = 13f
+                setTextColor(Color.DKGRAY)
+                setPadding(10, 2, 10, 6)
+            }
+            tabs.addView(cardTitle)
+            tabs.addView(cardDesc)
+            tabs.addView(button, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 68).apply {
+                setMargins(4, 2, 4, 10)
             })
         }
         root.addView(tabs)
         val deadReckoningButton = Button(this).apply {
-            text = "속도 보정 / GPS 실험 열기"
-            isAllCaps = false
-            textSize = 14f
+            text = "속도 보정 설정 열기  ›"
+            styleLargeButton(this)
             setOnClickListener {
                 startActivity(Intent(this@MainActivity, DeadReckoningActivity::class.java))
             }
         }
+        root.addView(TextView(this).apply {
+            text = "속도 보정값 입력과 실내 계산, GPS 실험을 진행하는 메뉴입니다."
+            textSize = 13f
+            setTextColor(Color.DKGRAY)
+            setPadding(12, 6, 12, 6)
+        })
         root.addView(deadReckoningButton, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, 48
-        ).apply { setMargins(8, 0, 8, 4) })
+            ViewGroup.LayoutParams.MATCH_PARENT, 68
+        ).apply { setMargins(8, 0, 8, 10) })
 
         val hudButton = Button(this).apply {
-            text = "HUD 블루투스 기기 확인"
-            isAllCaps = false
-            textSize = 14f
+            text = "HUD 페어링 기기 확인  ›"
+            styleLargeButton(this)
             setOnClickListener { showPairedHudDevices() }
         }
+        root.addView(TextView(this).apply {
+            text = "휴대폰에 등록된 MCon K HUD 블루투스 기기를 확인합니다."
+            textSize = 13f
+            setTextColor(Color.DKGRAY)
+            setPadding(12, 6, 12, 6)
+        })
         root.addView(hudButton, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, 48
-        ).apply { setMargins(8, 0, 8, 4) })
+            ViewGroup.LayoutParams.MATCH_PARENT, 68
+        ).apply { setMargins(8, 0, 8, 10) })
 
         webView = WebView(this).apply {
             setBackgroundColor(Color.WHITE)
