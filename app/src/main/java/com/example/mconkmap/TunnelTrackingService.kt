@@ -14,7 +14,8 @@ import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.os.SystemClock
-import androidx.core.app.NotificationCompat
+import android.os.Handler
+import android.os.Looper
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -33,12 +34,30 @@ class TunnelTrackingService : Service(), LocationListener {
     private var recovering = false
     private var lastStatus = "GPS 대기 중"
     private val prefs by lazy { getSharedPreferences("tunnel_tracking", MODE_PRIVATE) }
+    private val handler = Handler(Looper.getMainLooper())
+    private val watchdog = object : Runnable {
+        override fun run() {
+            val base = anchor
+            if (base != null) {
+                val age = (SystemClock.elapsedRealtime() - anchorElapsedMs) / 1000.0
+                if (age > 2.5 && !recovering) {
+                    recovering = true
+                    goodFixCount = 0
+                    publish("GPS 수신 끊김 · 추측항법으로 이동 중")
+                } else if (recovering) {
+                    publish("GPS 끊김 · 추측 위치 계산 중")
+                }
+            }
+            handler.postDelayed(this, 1000L)
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
         locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
         createChannel()
         startForeground(NOTIFICATION_ID, notification("GPS 위치 확인 중"))
+        handler.postDelayed(watchdog, 1000L)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -173,15 +192,21 @@ class TunnelTrackingService : Service(), LocationListener {
         nm.notify(NOTIFICATION_ID, notification(message))
     }
 
-    private fun notification(message: String): Notification =
-        NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+    private fun notification(message: String): Notification {
+        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Notification.Builder(this, CHANNEL_ID)
+        } else {
+            @Suppress("DEPRECATION")
+            Notification.Builder(this)
+        }
+        return builder.setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setContentTitle("MCon K 터널 추측항법 실행 중")
             .setContentText(message)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setStyle(Notification.BigTextStyle().bigText(message))
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .build()
+    }
 
     private fun createChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -196,6 +221,7 @@ class TunnelTrackingService : Service(), LocationListener {
     }
 
     override fun onDestroy() {
+        handler.removeCallbacks(watchdog)
         stopTracking()
         super.onDestroy()
     }
