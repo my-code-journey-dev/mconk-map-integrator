@@ -36,6 +36,8 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
     private lateinit var estimateText: TextView
     private lateinit var confidenceText: TextView
     private lateinit var headingText: TextView
+    private lateinit var speedCorrectionText: TextView
+    private var speedOffsetKmh = 0
     private var lastLat = Double.NaN
     private var lastLon = Double.NaN
     private var lastSpeedMps = 0.0
@@ -63,6 +65,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
+        speedOffsetKmh = getSharedPreferences("dr_settings", MODE_PRIVATE).getInt("speed_offset_kmh", 0).coerceIn(-20, 20)
         buildUi()
         updateDisplay()
         uiHandler.post(refreshRunnable)
@@ -88,6 +91,36 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
             setPadding(0, 8, 0, 14)
         }
         root.addView(note)
+
+        speedCorrectionText = makeText("속도 보정: 0 km/h", 17f, fg).apply {
+            setPadding(12, 12, 12, 12)
+            setBackgroundColor(panel)
+        }
+        root.addView(speedCorrectionText, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { setMargins(0, 5, 0, 5) })
+
+        val correctionButtons = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        fun correctionButton(label: String, delta: Int, reset: Boolean = false): Button {
+            return Button(this).apply {
+                text = label
+                isAllCaps = false
+                setOnClickListener {
+                    speedOffsetKmh = if (reset) 0 else (speedOffsetKmh + delta).coerceIn(-20, 20)
+                    getSharedPreferences("dr_settings", MODE_PRIVATE).edit()
+                        .putInt("speed_offset_kmh", speedOffsetKmh).apply()
+                    updateDisplay()
+                }
+            }
+        }
+        correctionButtons.addView(correctionButton("−1", -1), LinearLayout.LayoutParams(0, 48, 1f))
+        correctionButtons.addView(correctionButton("−4", -4), LinearLayout.LayoutParams(0, 48, 1f))
+        correctionButtons.addView(correctionButton("+1", 1), LinearLayout.LayoutParams(0, 48, 1f))
+        correctionButtons.addView(correctionButton("초기화", 0, true), LinearLayout.LayoutParams(0, 48, 1f))
+        root.addView(correctionButtons)
 
         status = makeText("상태: 시작 전", 17f, fg)
         gpsText = makeText("GPS: 대기 중", 16f, fg)
@@ -225,8 +258,12 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
         val speed = lastSpeedMps.coerceIn(0.0, 55.0)
         val distance = speed * ageSeconds.coerceAtMost(MAX_EXTRAPOLATION_SECONDS)
         val estimated = destinationPoint(lastLat, lastLon, distance, bearing)
-        gpsText.text = "마지막 GPS: %.6f, %.6f\n수신 후 경과: %.1f초 · 마지막 속도: %.1f km/h · 진행 방향: %.0f°".format(
-            lastLat, lastLon, ageSeconds, speed * 3.6, bearing
+        val rawSpeedKmh = speed * 3.6
+        val correctedSpeedKmh = (rawSpeedKmh + speedOffsetKmh).coerceAtLeast(0.0)
+        speedCorrectionText.text = "속도 보정: " + (if (speedOffsetKmh > 0) "+" else "") + speedOffsetKmh +
+            " km/h   ·   보정 속도: " + correctedSpeedKmh.toInt() + " km/h"
+        gpsText.text = "마지막 GPS: %.6f, %.6f\n수신 후 경과: %.1f초 · GPS 속도: %.1f km/h · 보정 표시: %.1f km/h · 진행 방향: %.0f°".format(
+            lastLat, lastLon, ageSeconds, rawSpeedKmh, correctedSpeedKmh, bearing
         )
         estimateText.text = "예상 위치\n%.6f, %.6f\n마지막 GPS에서 %.0fm 이동 추정".format(estimated.first, estimated.second, distance)
         confidenceText.text = when {
