@@ -159,6 +159,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
         root.addView(makeText("1. 보정할 속도 입력 (km/h)", 15f, fg))
         root.addView(correctionInput, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 52))
         val applyCorrection = Button(this).apply {
+            styleLargeButton(this)
             text = "속도 보정값 저장"
             isAllCaps = false
             setOnClickListener {
@@ -177,6 +178,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
         root.addView(makeText("보정값을 저장하려면 아래 버튼을 누르세요.", 13f, muted))
         root.addView(applyCorrection, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 52))
         val resetCorrection = Button(this).apply {
+            styleLargeButton(this)
             text = "보정값 0으로 초기화"
             isAllCaps = false
             setOnClickListener {
@@ -208,6 +210,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
         root.addView(makeText("2. 실내에서 시험할 원본 속도 입력 (km/h)", 15f, fg))
         root.addView(virtualSpeedInput, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 52))
         val applyVirtualSpeed = Button(this).apply {
+            styleLargeButton(this)
             text = "입력한 실내 속도 적용"
             isAllCaps = false
             setOnClickListener {
@@ -224,6 +227,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
         root.addView(makeText("입력한 원본 속도로 실내 계산을 시작하려면 아래 버튼을 누르세요.", 13f, muted))
         root.addView(applyVirtualSpeed, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 52))
         val clearVirtualSpeed = Button(this).apply {
+            styleLargeButton(this)
             text = "실내 속도 입력 해제"
             isAllCaps = false
             setOnClickListener {
@@ -253,6 +257,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
         confidenceText = makeText("신뢰도: 아직 GPS를 수신하지 못했습니다.", 15f, muted)
         headingText = makeText("휴대폰 방향 센서: 대기 중", 15f, muted)
         mockTestButton = Button(this).apply {
+            styleLargeButton(this)
             text = "모의 GPS 송출 시작"
             isAllCaps = false
             setOnClickListener {
@@ -271,6 +276,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
         }
 
         val calibrateButton = Button(this).apply {
+            styleLargeButton(this)
             text = "휴대폰 방향을 진행 방향으로 맞추기"
             isAllCaps = false
             setOnClickListener {
@@ -289,6 +295,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
         root.addView(calibrateButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 54))
 
         val start = Button(this).apply {
+            styleLargeButton(this)
             text = "실제 GPS 위치 수신 시작"
             isAllCaps = false
             setOnClickListener { startTracking() }
@@ -296,6 +303,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
         root.addView(makeText("실제 GPS 수신을 시작하려면 아래 버튼을 누르세요.", 13f, muted))
         root.addView(start, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 54))
         val stop = Button(this).apply {
+            styleLargeButton(this)
             text = "GPS 위치 수신 중지"
             isAllCaps = false
             setOnClickListener { stopTracking(); status.text = "상태: 중지됨" }
@@ -303,6 +311,7 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
         root.addView(makeText("GPS 위치 수신을 종료하려면 아래 버튼을 누르세요.", 13f, muted))
         root.addView(stop, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 48))
         val back = Button(this).apply {
+            styleLargeButton(this)
             text = "이전 화면으로 돌아가기"
             isAllCaps = false
             setOnClickListener { finish() }
@@ -310,6 +319,22 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
         root.addView(makeText("이전 메뉴로 이동하려면 아래 버튼을 누르세요.", 13f, muted))
         root.addView(back, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 48))
         setContentView(ScrollView(this).apply { addView(root) })
+    }
+
+
+    private fun styleLargeButton(button: Button) {
+        button.isAllCaps = false
+        button.textSize = 17f
+        button.setTextColor(Color.WHITE)
+        button.typeface = Typeface.DEFAULT_BOLD
+        button.minHeight = 68
+        button.minimumHeight = 68
+        button.setPadding(18, 12, 18, 12)
+        button.background = android.graphics.drawable.GradientDrawable().apply {
+            setColor(Color.rgb(37, 99, 235))
+            cornerRadius = 20f
+        }
+        button.elevation = 4f
     }
 
     private fun makeText(value: String, size: Float, color: Int) = TextView(this).apply {
