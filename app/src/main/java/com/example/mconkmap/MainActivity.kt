@@ -41,7 +41,6 @@ class MainActivity : Activity() {
         window.statusBarColor = dark
         window.navigationBarColor = dark
         buildUi()
-        loadService(0)
     }
 
     private fun buildUi() {
@@ -61,14 +60,14 @@ class MainActivity : Activity() {
             setBackgroundColor(dark)
         }
         val title = TextView(this).apply {
-            text = "지도 통합"
+            text = "MCon K 속도 실험"
             textSize = 21f
             setTextColor(Color.WHITE)
             typeface = Typeface.DEFAULT_BOLD
         }
         header.addView(title, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         statusText = TextView(this).apply {
-            text = "프로토타입 · HUD 연동 미포함"
+            text = "먼저 실험 메뉴 선택"
             textSize = 12f
             setTextColor(Color.LTGRAY)
             gravity = Gravity.CENTER_VERTICAL
@@ -94,7 +93,7 @@ class MainActivity : Activity() {
         }
         root.addView(tabs)
         val deadReckoningButton = Button(this).apply {
-            text = "터널 추측항법 테스트"
+            text = "속도 보정 / GPS 실험 열기"
             isAllCaps = false
             textSize = 14f
             setOnClickListener {
@@ -140,6 +139,13 @@ class MainActivity : Activity() {
             settings.javaScriptCanOpenWindowsAutomatically = false
             settings.setSupportMultipleWindows(false)
         }
+        webView.loadData(
+            "<html><body style='font-family:sans-serif;background:#f3f4f6;color:#111827;padding:24px'>" +
+                "<h2>실험 메뉴</h2><p>1. 먼저 ‘속도 보정 / GPS 실험 열기’를 누르세요.</p>" +
+                "<p>2. 보정값을 입력하고 적용하세요.</p><p>3. 지도 앱은 위의 버튼을 눌렀을 때만 엽니다.</p>" +
+                "<p><b>주의:</b> 모의 GPS 실험은 정차 상태에서만 진행하세요.</p></body></html>",
+            "text/html", "UTF-8", null
+        )
         root.addView(webView, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f
         ))
