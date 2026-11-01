@@ -12,6 +12,8 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.Gravity
 import android.view.ViewGroup
+import androidx.core.content.FileProvider
+import java.io.File
 import android.widget.Button
 import android.widget.EditText
 import android.text.InputType
@@ -100,6 +102,10 @@ class DeadReckoningActivity : Activity() {
             setHintTextColor(muted)
         }
         root.addView(outageSecondsInput, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 56))
+        val export = button("주행 CSV 기록 공유 / 내보내기")
+        export.setOnClickListener { shareLogFile() }
+        root.addView(export, buttonParams())
+
         val replay = button("CSV 리플레이 파일 선택")
         replay.setOnClickListener {
             val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -206,6 +212,26 @@ class DeadReckoningActivity : Activity() {
         val intent = Intent(this, NavigationTrackingService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent) else startService(intent)
         status.text = "백그라운드 추적 시작 요청됨"
+    }
+
+    private fun shareLogFile() {
+        val path = prefs.getString("log_path", null)
+        val file = path?.let { File(it) }
+        if (file == null || !file.exists()) {
+            showMessage("CSV 기록 파일이 없습니다. 추적을 시작한 뒤 다시 시도하세요.")
+            return
+        }
+        try {
+            val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = "text/csv"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(send, "주행 CSV 내보내기"))
+        } catch (e: Exception) {
+            showMessage("CSV 공유 실패: ${e.javaClass.simpleName}")
+        }
     }
 
     private fun showMessage(message: String) {
