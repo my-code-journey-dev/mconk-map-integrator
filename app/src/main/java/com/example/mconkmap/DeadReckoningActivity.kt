@@ -40,6 +40,8 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
     private lateinit var confidenceText: TextView
     private lateinit var headingText: TextView
     private lateinit var speedCorrectionText: TextView
+    private lateinit var virtualSpeedInput: EditText
+    private var virtualSpeedKmh: Double? = null
     private var speedOffsetKmh = 0
     private var lastLat = Double.NaN
     private var lastLon = Double.NaN
@@ -63,7 +65,8 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
                 val now = SystemClock.elapsedRealtime()
                 val dt = ((now - mockLastTickMs).coerceAtLeast(0L) / 1000.0).coerceAtMost(2.0)
                 mockLastTickMs = now
-                val speedMps = ((lastSpeedMps * 3.6 + speedOffsetKmh).coerceAtLeast(0.0) / 3.6).coerceAtMost(55.0)
+                val rawKmh = virtualSpeedKmh ?: (lastSpeedMps * 3.6)
+                val speedMps = ((rawKmh + speedOffsetKmh).coerceAtLeast(0.0) / 3.6).coerceAtMost(55.0)
                 val moved = destinationPoint(mockLat, mockLon, speedMps * dt, lastBearing)
                 mockLat = moved.first
                 mockLon = moved.second
@@ -188,6 +191,51 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
         ))
         root.addView(correctionRow)
 
+        val virtualRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        virtualSpeedInput = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            setSingleLine(true)
+            textSize = 18f
+            hint = "실내 테스트 속도 (예: 60)"
+            setText("60")
+            contentDescription = "실내 테스트 원본 속도 km/h"
+        }
+        virtualRow.addView(virtualSpeedInput, LinearLayout.LayoutParams(0, 52, 1f))
+        val applyVirtualSpeed = Button(this).apply {
+            text = "실내 속도 적용"
+            isAllCaps = false
+            setOnClickListener {
+                val value = virtualSpeedInput.text.toString().toDoubleOrNull()
+                if (value == null || value !in 0.0..250.0) {
+                    status.text = "상태: 실내 테스트 속도는 0~250 km/h로 입력하세요."
+                } else {
+                    virtualSpeedKmh = value
+                    status.text = "상태: 실내 가상속도 적용 · GPS 없이 계산"
+                    updateDisplay()
+                }
+            }
+        }
+        virtualRow.addView(applyVirtualSpeed, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, 52))
+        val clearVirtualSpeed = Button(this).apply {
+            text = "해제"
+            isAllCaps = false
+            setOnClickListener {
+                virtualSpeedKmh = null
+                status.text = "상태: 실내 가상속도 해제 · 실제 GPS 속도 사용"
+                updateDisplay()
+            }
+        }
+        virtualRow.addView(clearVirtualSpeed, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, 52))
+        root.addView(virtualRow)
+        val virtualHelp = makeText(
+            "실내 계산 시험: 예를 들어 60 입력 + 보정값 4 적용 → 원본 60 / 보정 −4 / 결과 56 km/h. 이 값은 우선 이 앱에서 계산을 확인하는 용도이며, 외부 지도 앱/HUD 반영 여부는 별도 시험해야 합니다.",
+            13f, muted
+        ).apply { setPadding(0, 4, 0, 8) }
+        root.addView(virtualHelp)
+
         val mockNote = makeText(
             "실험 기능: 선택한 모의 위치 앱으로 시스템 GPS를 덮어씁니다. 지도 위치가 이동 경로를 따라가지 못할 수 있고 앱이 모의 위치를 차단할 수 있습니다. 반드시 정차 상태에서 켜고, 테스트 후 중지하세요.",
             13f, muted
@@ -288,8 +336,8 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
 
 
     private fun startMockSpeedTest() {
-        if (!hasGpsFix || lastLat.isNaN() || lastLon.isNaN()) {
-            status.text = "상태: 먼저 '추측항법 시작'을 눌러 실제 GPS 위치를 받아 주세요."
+        if (!hasGpsFix && virtualSpeedKmh == null) {
+            status.text = "상태: 먼저 실내 가상속도를 적용하거나 실제 GPS를 수신해 주세요."
             return
         }
         try {
@@ -301,8 +349,9 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
                 android.location.Criteria.ACCURACY_FINE
             )
             locationManager.setTestProviderEnabled(LocationManager.GPS_PROVIDER, true)
-            mockLat = lastLat
-            mockLon = lastLon
+            // 실내 모의 위치 시험은 서울역 주변 샘플 좌표에서 시작합니다.
+            mockLat = if (hasGpsFix) lastLat else 37.5547
+            mockLon = if (hasGpsFix) lastLon else 126.9707
             mockLastTickMs = SystemClock.elapsedRealtime()
             mockSpeedTestActive = true
             mockTestButton.text = "시스템 속도 보정 실험 중지"
@@ -367,33 +416,32 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
     private fun updateDisplay() {
-        if (!hasGpsFix) {
-            gpsText.text = "GPS: 아직 유효한 위치가 없습니다."
-            estimateText.text = "추정 위치: GPS 수신 대기"
-            confidenceText.text = "신뢰도: GPS 위치를 한 번 이상 받아야 계산할 수 있습니다."
-            return
-        }
-        val ageSeconds = ((SystemClock.elapsedRealtime() - lastFixElapsedMs).coerceAtLeast(0L)) / 1000.0
+        val ageSeconds = if (hasGpsFix) ((SystemClock.elapsedRealtime() - lastFixElapsedMs).coerceAtLeast(0L)) / 1000.0 else 0.0
         val bearing = if (headingCalibrated && !sensorHeading.isNaN()) normalizeAngle(sensorHeading + calibratedHeadingOffset) else lastBearing
-        val rawSpeedMps = lastSpeedMps.coerceIn(0.0, 55.0)
-        val speed = ((rawSpeedMps * 3.6 + speedOffsetKmh).coerceAtLeast(0.0) / 3.6).coerceIn(0.0, 55.0)
+        val rawSpeedKmh = (virtualSpeedKmh ?: (lastSpeedMps * 3.6)).coerceIn(0.0, 250.0)
+        val speed = ((rawSpeedKmh + speedOffsetKmh).coerceAtLeast(0.0) / 3.6).coerceIn(0.0, 55.0)
         val distance = speed * ageSeconds.coerceAtMost(MAX_EXTRAPOLATION_SECONDS)
-        val estimated = destinationPoint(lastLat, lastLon, distance, bearing)
-        val rawSpeedKmh = rawSpeedMps * 3.6
-        val correctedSpeedKmh = (rawSpeedKmh + speedOffsetKmh).coerceIn(0.0, 198.0)
+        val estimated = if (hasGpsFix) destinationPoint(lastLat, lastLon, distance, bearing) else Pair(Double.NaN, Double.NaN)
+        val correctedSpeedKmh = (rawSpeedKmh + speedOffsetKmh).coerceIn(0.0, 250.0)
         speedCorrectionText.text = "뺄 값: " + kotlin.math.abs(speedOffsetKmh) +
             " km/h   ·   보정 속도: " + correctedSpeedKmh.toInt() + " km/h"
-        gpsText.text = "마지막 GPS: %.6f, %.6f\n수신 후 경과: %.1f초 · GPS 속도: %.1f km/h · 보정 표시: %.1f km/h · 진행 방향: %.0f°".format(
-            lastLat, lastLon, ageSeconds, rawSpeedKmh, correctedSpeedKmh, bearing
-        )
-        estimateText.text = "예상 위치\n%.6f, %.6f\n마지막 GPS에서 %.0fm 이동 추정".format(estimated.first, estimated.second, distance)
-        confidenceText.text = when {
+        gpsText.text = if (hasGpsFix) {
+            "마지막 GPS: %.6f, %.6f\n수신 후 경과: %.1f초 · 원본 속도: %.1f km/h · 보정 속도: %.1f km/h · 방향: %.0f°".format(lastLat, lastLon, ageSeconds, rawSpeedKmh, correctedSpeedKmh, bearing)
+        } else {
+            "실내 가상 GPS 계산\n원본 속도: %.1f km/h · 보정값: %d km/h · 결과: %.1f km/h".format(rawSpeedKmh, speedOffsetKmh, correctedSpeedKmh)
+        }
+        estimateText.text = if (hasGpsFix) {
+            "예상 위치\n%.6f, %.6f\n마지막 GPS에서 %.0fm 이동 추정".format(estimated.first, estimated.second, distance)
+        } else {
+            "실내 테스트 모드\nGPS 좌표 수신 없이 속도 계산만 확인 중"
+        }
+        confidenceText.text = if (!hasGpsFix) "신뢰도: 속도 계산 시험 전용 · 외부 지도/HUD 반영은 미확인" else when {
             ageSeconds <= 2.0 -> "신뢰도: GPS 정상 수신 중"
             ageSeconds <= 10.0 -> "신뢰도: 낮아지는 중 · 일정 속도/방향 가정"
             ageSeconds <= MAX_EXTRAPOLATION_SECONDS -> "신뢰도: 낮음 · 터널에서 오차가 빠르게 커질 수 있음"
             else -> "신뢰도: 매우 낮음 · " + MAX_EXTRAPOLATION_SECONDS.toInt() + "초 이후 위치 추정을 제한했습니다"
         }
-        if (ageSeconds > 2.0 && isTracking) status.text = "상태: GPS 갱신 지연 · 추정 모드"
+        if (hasGpsFix && ageSeconds > 2.0 && isTracking) status.text = "상태: GPS 갱신 지연 · 추정 모드"
     }
 
     private fun destinationPoint(lat: Double, lon: Double, distanceMeters: Double, bearingDegrees: Double): Pair<Double, Double> {
