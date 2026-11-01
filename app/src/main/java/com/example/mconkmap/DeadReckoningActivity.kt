@@ -13,6 +13,8 @@ import android.provider.Settings
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.EditText
+import android.text.InputType
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -24,6 +26,7 @@ import android.os.Looper
 class DeadReckoningActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var obdLabel: TextView
+    private lateinit var outageSecondsInput: EditText
     private val handler = Handler(Looper.getMainLooper())
     private val prefs by lazy { getSharedPreferences("navigation_tracking", MODE_PRIVATE) }
     private val dark = Color.rgb(17, 24, 39)
@@ -88,6 +91,15 @@ class DeadReckoningActivity : Activity() {
         status.setBackgroundColor(panel)
         root.addView(status, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
+        root.addView(text("GPS를 끊을 시간(초)", 14f, white))
+        outageSecondsInput = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            setText("10")
+            textSize = 18f
+            setTextColor(white)
+            setHintTextColor(muted)
+        }
+        root.addView(outageSecondsInput, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 56))
         val replay = button("CSV 리플레이 파일 선택")
         replay.setOnClickListener {
             val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -207,7 +219,7 @@ class DeadReckoningActivity : Activity() {
             val uri: Uri = data?.data ?: return
             try {
                 val csv = contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: ""
-                val outage = 10.0
+                val outage = outageSecondsInput.text.toString().toDoubleOrNull()?.coerceIn(1.0, 120.0) ?: 10.0
                 val result = com.example.mconkmap.logging.ReplayRunner.run(csv, outage)
                 showMessage("GPS 단절 시험: ${outage.toInt()}초\n분석 샘플: ${result.points.size}\n평균 오차: %.1fm\n최대 오차: %.1fm".format(
                     result.meanErrorMeters, result.maxErrorMeters
