@@ -218,7 +218,8 @@ class NavigationTrackingService : Service(), LocationListener, SensorEventListen
             location.latitude, location.longitude,
             if (location.hasSpeed()) location.speed * 3.6 else 0.0,
             if (location.hasBearing()) location.bearing.toDouble() else 0.0,
-            location.accuracy, location.elapsedRealtimeNanos.takeIf { it > 0L } ?: now
+            location.accuracy, location.elapsedRealtimeNanos.takeIf { it > 0L } ?: now,
+            location.hasBearing()
         )
         latestGps = fix
     }
