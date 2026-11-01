@@ -93,6 +93,18 @@ class MainActivity : Activity() {
             })
         }
         root.addView(tabs)
+        val deadReckoningButton = Button(this).apply {
+            text = "터널 추측항법 테스트"
+            isAllCaps = false
+            textSize = 14f
+            setOnClickListener {
+                startActivity(Intent(this@MainActivity, DeadReckoningActivity::class.java))
+            }
+        }
+        root.addView(deadReckoningButton, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, 48
+        ).apply { setMargins(8, 0, 8, 4) })
+
         val hudButton = Button(this).apply {
             text = "HUD 블루투스 기기 확인"
             isAllCaps = false
