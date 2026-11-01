@@ -3,6 +3,7 @@ package com.example.mconkmap.logging
 import com.example.mconkmap.engine.DeadReckoningEngine
 import com.example.mconkmap.engine.EngineInput
 import com.example.mconkmap.engine.GpsFix
+import com.example.mconkmap.sensor.VehicleHeadingTracker
 import kotlin.math.*
 
 data class ReplayPoint(
@@ -20,46 +21,54 @@ data class ReplayResult(
     val maxErrorMeters: Double
 )
 
-/**
- * Replays DriveLogger CSV. GPS is deliberately hidden for outageSeconds from the first row.
- * Real GPS coordinates remain available only as ground truth for error calculation.
- */
+/** Replay logger CSV while hiding GPS for a selected interval after the initial GPS lock. */
 object ReplayRunner {
     fun run(csv: String, outageSeconds: Double): ReplayResult {
         val rows = csv.lineSequence().drop(1).filter { it.isNotBlank() }.mapNotNull { line ->
             val c = line.split(",")
             if (c.size < 15) null else try {
                 Row(
-                    c[0].toLong(), c[2].toDoubleOrNull(), c[3].toDoubleOrNull(),
-                    c[4].toDoubleOrNull(), c[5].toDoubleOrNull(), c[6].toFloatOrNull(),
-                    c[7].toDoubleOrNull(), c[8].toBoolean(), c[9].toDoubleOrNull() ?: 0.0,
-                    c[10].toDoubleOrNull() ?: 0.0, c[11].toDoubleOrNull() ?: 0.0
+                    elapsed = c[0].toLong(),
+                    lat = c[2].toDoubleOrNull(), lon = c[3].toDoubleOrNull(),
+                    gpsSpeed = c[4].toDoubleOrNull(), bearing = c[5].toDoubleOrNull(),
+                    accuracy = c[6].toFloatOrNull(), obdSpeed = c[7].toDoubleOrNull(),
+                    obdConnected = c[8].toBoolean(),
+                    gyro = floatArrayOf(c[9].toFloatOrNull() ?: 0f, c[10].toFloatOrNull() ?: 0f, c[11].toFloatOrNull() ?: 0f),
+                    gravity = floatArrayOf(c[12].toFloatOrNull() ?: 0f, c[13].toFloatOrNull() ?: 0f, c[14].toFloatOrNull() ?: 0f)
                 )
             } catch (_: Exception) { null }
         }.toList()
         if (rows.isEmpty()) return ReplayResult(emptyList(), 0.0, 0.0)
 
         val engine = DeadReckoningEngine()
-        val start = rows.first().elapsedNanos
+        val heading = VehicleHeadingTracker()
+        val start = rows.first().elapsed
+        val outageStart = 1_000_000_000L // retain the first second to establish a GPS origin
+        val outageEnd = outageStart + (outageSeconds.coerceAtLeast(0.0) * 1e9).toLong()
         val points = mutableListOf<ReplayPoint>()
         val errors = mutableListOf<Double>()
+
         rows.forEach { row ->
-            val outage = row.elapsedNanos - start >= 0L &&
-                row.elapsedNanos - start <= (outageSeconds.coerceAtLeast(0.0) * 1e9).toLong()
+            heading.onAccelerometer(row.gravity[0], row.gravity[1], row.gravity[2])
+            val yawRate = heading.onGyroscope(
+                row.gyro[0], row.gyro[1], row.gyro[2],
+                row.obdConnected && (row.obdSpeed ?: 999.0) < 1.5
+            )
+            val elapsed = row.elapsed - start
+            val outage = elapsed in outageStart..outageEnd
             val gps = if (!outage && row.lat != null && row.lon != null && row.accuracy != null) {
                 GpsFix(row.lat, row.lon, row.gpsSpeed ?: 0.0, row.bearing ?: 0.0,
-                    row.accuracy, row.elapsedNanos)
+                    row.accuracy, row.elapsed)
             } else null
             val state = engine.update(EngineInput(
-                row.elapsedNanos, gps, row.obdSpeed, row.elapsedNanos,
-                row.obdConnected, yawRateRadPerSecond = row.yawRate
+                row.elapsed, gps, row.obdSpeed, row.elapsed, row.obdConnected, yawRate
             ))
             val error = if (outage && row.lat != null && row.lon != null &&
                 !state.latitude.isNaN() && !state.longitude.isNaN()) {
                 distanceMeters(state.latitude, state.longitude, row.lat, row.lon)
             } else null
             if (error != null) errors.add(error)
-            points.add(ReplayPoint(row.elapsedNanos, state.latitude, state.longitude,
+            points.add(ReplayPoint(row.elapsed, state.latitude, state.longitude,
                 row.lat, row.lon, error))
         }
         return ReplayResult(points, if (errors.isEmpty()) 0.0 else errors.average(),
@@ -76,9 +85,9 @@ object ReplayRunner {
     }
 
     private data class Row(
-        val elapsedNanos: Long, val lat: Double?, val lon: Double?,
+        val elapsed: Long, val lat: Double?, val lon: Double?,
         val gpsSpeed: Double?, val bearing: Double?, val accuracy: Float?,
-        val obdSpeed: Double?, val obdConnected: Boolean, val yawRate: Double,
-        val unused1: Double, val unused2: Double
+        val obdSpeed: Double?, val obdConnected: Boolean,
+        val gyro: FloatArray, val gravity: FloatArray
     )
 }
