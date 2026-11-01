@@ -11,7 +11,7 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <application
         android:allowBackup="false"
-        android:label="MConK 지도 통합 (프로토타입)"
+        android:label="차량 터널 위치 보정"
         android:usesCleartextTraffic="false"
         android:theme="@style/AppTheme">
         <service android:name=".TunnelTrackingService" android:exported="false" android:foregroundServiceType="location" />
