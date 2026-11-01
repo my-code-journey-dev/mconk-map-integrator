@@ -42,6 +42,9 @@ class DeadReckoningEngine(
     private var lastRatioGpsNanos = 0L
     private var lastObdSpeedKmh = 0.0
     private var lastObdNanos = 0L
+    // Last valid GPS speed is a short-term fallback when GPS updates stop in a tunnel.
+    private var lastGpsSpeedKmh = 0.0
+    private var lastGpsSpeedNanos = 0L
     private var speedRatio = 1.0
     private var drDistance = 0.0
     private var drStartNanos = 0L
@@ -95,6 +98,11 @@ class DeadReckoningEngine(
     }
 
     private fun processGoodGps(gps: GpsFix, input: EngineInput, now: Long) {
+        // Cache speed only from a fresh, sufficiently accurate GPS fix.
+        if (gps.speedKmh.isFinite() && gps.speedKmh >= 0.0) {
+            lastGpsSpeedKmh = gps.speedKmh.coerceIn(0.0, 180.0)
+            lastGpsSpeedNanos = gps.elapsedRealtimeNanos
+        }
         val hadDeadReckoning = mode == TrackingMode.DEAD_RECKONING
         if (hadDeadReckoning) {
             recoveryFromLat = latitude
@@ -158,9 +166,16 @@ class DeadReckoningEngine(
 
         heading = normalize(heading + Math.toDegrees(input.yawRateRadPerSecond * dt))
         val obdAge = if (lastObdNanos == 0L) Long.MAX_VALUE else now - lastObdNanos
-        // Retain the last measured vehicle speed when the adapter drops out; UI reports stale/disconnected.
-        val usableSpeed = if (obdAge <= 5_000_000_000L) lastObdSpeedKmh else 0.0
-        speedKmh = usableSpeed * speedRatio
+        val gpsSpeedAge = if (lastGpsSpeedNanos == 0L) Long.MAX_VALUE else now - lastGpsSpeedNanos
+
+        // Prefer live/recent OBD speed. Without OBD, briefly retain the last valid GPS speed.
+        // GPS fallback is deliberately time-limited because speed can change inside a tunnel.
+        val usableSpeed = when {
+            obdAge in 0L..5_000_000_000L -> lastObdSpeedKmh * speedRatio
+            gpsSpeedAge in 0L..5_000_000_000L -> lastGpsSpeedKmh
+            else -> 0.0
+        }
+        speedKmh = usableSpeed.coerceIn(0.0, 180.0)
         val distance = speedKmh / 3.6 * dt
         moveLocal(distance, heading)
         drDistance += distance
