@@ -255,11 +255,12 @@ class DeadReckoningActivity : Activity(), LocationListener, SensorEventListener 
         }
         val ageSeconds = ((SystemClock.elapsedRealtime() - lastFixElapsedMs).coerceAtLeast(0L)) / 1000.0
         val bearing = if (headingCalibrated && !sensorHeading.isNaN()) normalizeAngle(sensorHeading + calibratedHeadingOffset) else lastBearing
-        val speed = lastSpeedMps.coerceIn(0.0, 55.0)
+        val rawSpeedMps = lastSpeedMps.coerceIn(0.0, 55.0)
+        val speed = ((rawSpeedMps * 3.6 + speedOffsetKmh).coerceAtLeast(0.0) / 3.6).coerceIn(0.0, 55.0)
         val distance = speed * ageSeconds.coerceAtMost(MAX_EXTRAPOLATION_SECONDS)
         val estimated = destinationPoint(lastLat, lastLon, distance, bearing)
-        val rawSpeedKmh = speed * 3.6
-        val correctedSpeedKmh = (rawSpeedKmh + speedOffsetKmh).coerceAtLeast(0.0)
+        val rawSpeedKmh = rawSpeedMps * 3.6
+        val correctedSpeedKmh = (rawSpeedKmh + speedOffsetKmh).coerceIn(0.0, 198.0)
         speedCorrectionText.text = "속도 보정: " + (if (speedOffsetKmh > 0) "+" else "") + speedOffsetKmh +
             " km/h   ·   보정 속도: " + correctedSpeedKmh.toInt() + " km/h"
         gpsText.text = "마지막 GPS: %.6f, %.6f\n수신 후 경과: %.1f초 · GPS 속도: %.1f km/h · 보정 표시: %.1f km/h · 진행 방향: %.0f°".format(
