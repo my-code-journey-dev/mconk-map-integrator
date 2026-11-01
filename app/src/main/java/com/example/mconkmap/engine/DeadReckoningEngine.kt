@@ -8,7 +8,8 @@ data class GpsFix(
     val speedKmh: Double,
     val bearingDegrees: Double,
     val accuracyMeters: Float,
-    val elapsedRealtimeNanos: Long
+    val elapsedRealtimeNanos: Long,
+    val hasBearing: Boolean = true
 )
 
 data class EngineInput(
@@ -100,7 +101,7 @@ class DeadReckoningEngine(
             recoveryFromLon = longitude
             recoveryToLat = gps.latitude
             recoveryToLon = gps.longitude
-            recoveryToHeading = if ((input.obdSpeedKmh ?: gps.speedKmh) >= 10.0) gps.bearingDegrees else heading
+            recoveryToHeading = if (gps.hasBearing && (input.obdSpeedKmh ?: gps.speedKmh) >= 10.0) gps.bearingDegrees else heading
             recoveryToSpeed = gps.speedKmh
             recoveryStartNanos = now
             mode = TrackingMode.RECOVERING
@@ -115,7 +116,7 @@ class DeadReckoningEngine(
             if (t >= 1.0) {
                 latitude = gps.latitude
                 longitude = gps.longitude
-                if ((input.obdSpeedKmh ?: gps.speedKmh) >= 10.0) heading = gps.bearingDegrees
+                if (gps.hasBearing && (input.obdSpeedKmh ?: gps.speedKmh) >= 10.0) heading = gps.bearingDegrees
                 speedKmh = gps.speedKmh
                 mode = TrackingMode.GPS
                 drDistance = 0.0
